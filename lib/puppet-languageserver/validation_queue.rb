@@ -13,12 +13,12 @@ module PuppetLanguageServer
     @queue_thread = nil
 
     # Enqueue a file to be validated
-    def self.enqueue(file_uri, doc_version, connection_object)
+    def self.enqueue(file_uri, doc_version, client_handler_id)
       document_type = PuppetLanguageServer::DocumentStore.document_type(file_uri)
 
       unless %i[manifest epp puppetfile].include?(document_type)
         # Can't validate these types so just emit an empty validation result
-        connection_object.reply_diagnostics(file_uri, [])
+        send_diagnostics(client_handler_id, file_uri, [])
         return
       end
 
@@ -29,7 +29,7 @@ module PuppetLanguageServer
           'file_uri'          => file_uri,
           'doc_version'       => doc_version,
           'document_type'     => document_type,
-          'connection_object' => connection_object
+          'client_handler_id' => client_handler_id
         }
       end
 
@@ -48,14 +48,14 @@ module PuppetLanguageServer
     end
 
     # Synchronously validate a file
-    def self.validate_sync(file_uri, doc_version, connection_object)
+    def self.validate_sync(file_uri, doc_version, client_handler_id)
       document_type = PuppetLanguageServer::DocumentStore.document_type(file_uri)
       content = documents.document(file_uri, doc_version)
       return nil if content.nil?
       result = validate(file_uri, document_type, content)
 
       # Send the response
-      connection_object.reply_diagnostics(file_uri, result)
+      send_diagnostics(client_handler_id, file_uri, result)
     end
 
     # Helper method to the Document Store
@@ -78,6 +78,16 @@ module PuppetLanguageServer
         @queue = initial_state
       end
     end
+
+    def self.send_diagnostics(client_handler_id, file_uri, diagnostics)
+      handler = PuppetEditorServices::SimpleServer.current_server.client_handler(client_handler_id)
+      return if handler.nil?
+
+      handler.encode_and_send(
+        PuppetEditorServices::JSONMessage.notification('textDocument/publishDiagnostics', 'uri' => file_uri, 'diagnostics' => diagnostics)
+      )
+    end
+    private_class_method :send_diagnostics
 
     # Validate a document
     def self.validate(document_uri, document_type, content)
@@ -106,10 +116,10 @@ module PuppetLanguageServer
         end
         return if work_item.nil?
 
-        file_uri          = work_item['file_uri']
-        doc_version       = work_item['doc_version']
-        connection_object = work_item['connection_object']
-        document_type     = work_item['document_type']
+        file_uri              = work_item['file_uri']
+        doc_version           = work_item['doc_version']
+        client_handler_id     = work_item['client_handler_id']
+        document_type         = work_item['document_type']
 
         # Check if the document is the latest version
         content = documents.document(file_uri, doc_version)
@@ -129,7 +139,7 @@ module PuppetLanguageServer
         end
 
         # Send the response
-        connection_object.reply_diagnostics(file_uri, result)
+        send_diagnostics(client_handler_id, file_uri, result)
       end
     end
     private_class_method :worker

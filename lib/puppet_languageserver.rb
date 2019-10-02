@@ -53,7 +53,6 @@ module PuppetLanguageServer
     # These libraries do not require the puppet gem and required for the
     # server to respond to clients.
     %w[
-      json_rpc_handler
       document_store
       crash_dump
       language_client
@@ -283,19 +282,23 @@ module PuppetLanguageServer
       log_message(:info, 'Configured the Language Server to use the Disabled Message Router')
     end
 
+    rpc_handler_options = options.dup
+    rpc_handler_options[:message_handler_class] = PuppetLanguageServer::MessageHandler
+
     if options[:stdio]
       log_message(:debug, 'Using STDIO')
       server = PuppetEditorServices::SimpleSTDIOServer.new
 
       trap('INT') { server.stop }
-      server.start(PuppetLanguageServer::JSONRPCHandler, options)
+      server.start(PuppetEditorServices::JSONRPCHandler, rpc_handler_options)
     else
       log_message(:debug, 'Using Simple TCP')
       server = PuppetEditorServices::SimpleTCPServer.new
 
       server.add_service(options[:ipaddress], options[:port])
       trap('INT') { server.stop_services(true) }
-      server.start(PuppetLanguageServer::JSONRPCHandler, options, 2)
+      # TODO: Add max threads?
+      server.start(PuppetEditorServices::JSONRPCHandler, rpc_handler_options, options)
     end
 
     log_message(:info, 'Language Server exited.')

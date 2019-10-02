@@ -1,6 +1,15 @@
 # frozen_string_literal: true
 
-%w[logging version simple_base simple_tcp_server simple_stdio_server].each do |lib|
+%w[
+  logging
+  version
+  simple_base
+  simple_tcp_server
+  simple_stdio_server
+  json_rpc_handler
+  json_messages
+  message_handler
+].each do |lib|
   begin
     require "puppet-editor-services/#{lib}"
   rescue LoadError

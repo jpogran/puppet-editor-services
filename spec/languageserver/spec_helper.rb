@@ -149,18 +149,12 @@ class MockConnection < PuppetEditorServices::SimpleServerConnectionBase
   end
 end
 
-class MockJSONRPCHandler < PuppetLanguageServer::JSONRPCHandler
+class MockJSONRPCHandler < PuppetEditorServices::JSONRPCHandler
   def initialize(options = {})
-    super(options)
-
-    @client_connection = MockConnection.new
+    super(MockConnection.new, options)
   end
 
   def receive_data(_); end
-
-  def connection
-    @client_connection
-  end
 end
 
 class MockRelationshipGraph
@@ -179,4 +173,12 @@ class MockMessageRouter
   def receive_notification(_, _); end
 
   def receive_response(_, _); end
+end
+
+class MockMessageHandler < PuppetEditorServices::BaseMessageHandler
+  #def request_initialize(*_); end
+
+  def request_puppet_getversion(*_); end
+
+  def response_mock(*_); end
 end

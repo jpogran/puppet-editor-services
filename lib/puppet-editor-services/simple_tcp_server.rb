@@ -33,7 +33,7 @@ module PuppetEditorServices
     end
   end
 
-  class SimpleTCPServer
+  class SimpleTCPServer < PuppetEditorServices::SimpleServer
     class << self
       attr_reader :io_locker
       attr_reader :events
@@ -79,10 +79,15 @@ module PuppetEditorServices
     @handler_start_options = nil
     @server_options = nil
 
-    def start(handler = PuppetEditorServices::SimpleTCPServerConnection, connection_options = {}, max_threads = 2)
-      connection_options[:servicename] = 'LANGUAGE SERVER' if connection_options[:servicename].nil?
+    def start(handler = PuppetEditorServices::SimpleServerConnectionHandler, handler_options = {}, server_options = {})
+      @server_options = server_options
+      @handler_klass = handler
+      @handler_start_options = handler_options
+
+      @server_options[:servicename] = 'LANGUAGE SERVER' if @server_options[:servicename].nil?
 
       # prepare threads
+      max_threads = @server_options[:max_threads] || 2
       exit_flag = false
       threads = []
       thread_cycle = proc do
@@ -96,21 +101,18 @@ module PuppetEditorServices
       end
       max_threads.times { Thread.new { thread_cycle.call until exit_flag } }
 
-      @handler_klass = handler
-      @handler_start_options = connection_options
-      @server_options = connection_options # Currently the same as handler options.  Could be different later.
       log('Services running. Press ^C to stop')
 
       # sleep until trap raises exception (cycling might cause the main thread to loose signals that might be caught inside rescue clauses)
-      kill_timer = connection_options[:connection_timeout]
+      kill_timer = @server_options[:connection_timeout]
       kill_timer = -1 if kill_timer.nil? || kill_timer < 1
-      log("Will stop the server in #{connection_options[:connection_timeout]} seconds if no connection is made.") if kill_timer > 0
+      log("Will stop the server in #{@server_options[:connection_timeout]} seconds if no connection is made.") if kill_timer > 0
       log('Will stop the server when client disconnects') if !@server_options[:stop_on_client_exit].nil? && @server_options[:stop_on_client_exit]
 
       # Output to STDOUT.  This is required by clients so it knows the server is now running
       self.class.s_locker.synchronize do
-        self.class.services.each_value do |options|
-          $stdout.write("#{@handler_start_options[:servicename]} RUNNING #{options[:hostname]}:#{options[:port]}\n")
+        self.class.services.each_value do |service|
+          $stdout.write("#{service[:servicename]} RUNNING #{service[:hostname]}:#{service[:port]}\n")
         end
       end
       $stdout.flush
@@ -126,7 +128,7 @@ module PuppetEditorServices
               connection_count = 0
               self.class.c_locker.synchronize { connection_count = self.class.io_connection_dic.count }
               if connection_count.zero?
-                log("No connection has been received in #{connection_options[:connection_timeout]} seconds.  Shutting down server.")
+                log("No connection has been received in #{@server_options[:connection_timeout]} seconds.  Shutting down server.")
                 stop_services
               end
             end
@@ -314,15 +316,26 @@ module PuppetEditorServices
 
     # @api private
     def add_connection(io, service_object)
-      handler = @handler_klass.new(@handler_start_options)
       conn = SimpleTCPServerConnection.new(self, io)
-      handler.client_connection = conn
+      handler = @handler_klass.new(conn, @handler_start_options)
       if io
         self.class.c_locker.synchronize do
           self.class.io_connection_dic[io] = { handler: handler, service: service_object }
         end
       end
       callback(handler, :post_init)
+    rescue StandardError => e
+      callback(self, :error, "Error creating connection #{e.inspect}\n#{e.backtrace}")
+    end
+
+    # @api public
+    # Override from PuppetEditorServices::SimpleServer
+    def client_handler(handler_id)
+      self.class.c_locker.synchronize do
+        self.class.io_connection_dic.each do |_, v|
+          return v[:handler] unless v[:handler].nil? || v[:handler].handler_id != handler_id
+        end
+      end
     end
 
     # @api private

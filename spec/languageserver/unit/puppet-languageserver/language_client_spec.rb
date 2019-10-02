@@ -274,7 +274,7 @@ describe 'PuppetLanguageServer::LanguageClient' do
 
     it 'should include the puppet settings' do
       subject.send_configuration_request
-      expect(json_rpc_handler.connection.buffer).to include('{"section":"puppet"}')
+      expect(json_rpc_handler.client_connection.buffer).to include('{"section":"puppet"}')
     end
   end
 
@@ -415,12 +415,12 @@ describe 'PuppetLanguageServer::LanguageClient' do
 
     it 'should include the method to register' do
       subject.register_capability(method_name, method_options)
-      expect(json_rpc_handler.connection.buffer).to include("\"method\":\"#{method_name}\"")
+      expect(json_rpc_handler.client_connection.buffer).to include("\"method\":\"#{method_name}\"")
     end
 
     it 'should include the parameters to register' do
       subject.register_capability(method_name, method_options)
-      expect(json_rpc_handler.connection.buffer).to include('"registerOptions":{}')
+      expect(json_rpc_handler.client_connection.buffer).to include('"registerOptions":{}')
     end
 
     it 'should log a message if a registration is already in progress' do
@@ -468,7 +468,7 @@ describe 'PuppetLanguageServer::LanguageClient' do
 
     it 'should include the method to register' do
       subject.unregister_capability(method_name)
-      expect(json_rpc_handler.connection.buffer).to include("\"method\":\"#{method_name}\"")
+      expect(json_rpc_handler.client_connection.buffer).to include("\"method\":\"#{method_name}\"")
     end
 
     it 'should log a message if a registration is already in progress' do

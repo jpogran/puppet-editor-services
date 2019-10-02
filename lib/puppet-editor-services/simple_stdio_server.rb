@@ -25,7 +25,7 @@ module PuppetEditorServices
     end
   end
 
-  class SimpleSTDIOServer
+  class SimpleSTDIOServer < SimpleServerConnectionBase
     attr_accessor :exiting
 
     def log(message)
@@ -36,8 +36,8 @@ module PuppetEditorServices
       @exiting = false
     end
 
-    def start(handler_klass = PuppetEditorServices::SimpleTCPServerConnection, connection_options = {})
-      connection_options[:servicename] = 'LANGUAGE SERVER' if connection_options[:servicename].nil?
+    def start(handler_klass = PuppetEditorServices::SimpleServerConnectionHandler, handler_options = {}, _server_options = {})
+      # server_options[:servicename] = 'LANGUAGE SERVER' if server_options[:servicename].nil?
       # This is a little heavy handed but we need to suppress writes to STDOUT and STDERR
       $VERBOSE = nil
       # Some libraries use $stdout to write to the console. Suppress all of that too!
@@ -49,17 +49,17 @@ module PuppetEditorServices
       # Stop the stupid CRLF injection when on Windows
       $editor_services_stdout.binmode unless $editor_services_stdout.binmode # rubocop:disable Style/GlobalVars  We need this global var
 
-      handler = handler_klass.new(connection_options)
+      @handler = handler_klass.new(handler_options)
       client_connection = PuppetEditorServices::SimpleSTDIOServerConnection.new(self)
-      handler.client_connection = client_connection
-      handler.post_init
+      @handler.client_connection = client_connection
+      @handler.post_init
 
       log('Starting STDIO server...')
       loop do
         inbound_data = nil
         read_from_pipe($stdin, 2) { |data| inbound_data = data }
         break if @exiting
-        handler.receive_data(inbound_data) unless inbound_data.nil?
+        @handler.receive_data(inbound_data) unless inbound_data.nil?
         break if @exiting
       end
       log('STDIO server stopped')
@@ -68,6 +68,10 @@ module PuppetEditorServices
     def stop
       log('Stopping STDIO server...')
       @exiting = true
+    end
+
+    def client_handler(handler_id)
+      @handler unless @handler.nil? || @handler.handler_id != handler_id
     end
 
     def close_connection
