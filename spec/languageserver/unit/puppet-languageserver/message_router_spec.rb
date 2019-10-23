@@ -258,341 +258,288 @@ describe 'PuppetLanguageServer::MessageHandler' do
       end
     end
 
-  #   context 'given a puppet/compileNodeGraph request' do
-  #     let(:request_rpc_method) { 'puppet/compileNodeGraph' }
-  #     let(:file_uri) { MANIFEST_FILENAME }
-  #     let(:file_content) { 'some file content' }
-  #     let(:dot_content) { 'some graph content' }
-  #     let(:request_params) {{
-  #       'external' => file_uri
-  #     }}
-
-  #     before(:each) do
-  #       # Create fake document store
-  #       subject.documents.clear
-  #       subject.documents.set_document(file_uri,file_content, 0)
-  #     end
-
-  #     context 'and a file which is not a puppet manifest' do
-  #       let(:file_uri) { UNKNOWN_FILENAME }
-
-  #       it 'should reply with the error text' do
-  #         expect(request).to receive(:reply_result).with(having_attributes(:error => /Files of this type/))
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should not reply with dotContent' do
-  #         expect(request).to_not receive(:reply_result).with(having_attributes(:dotContent => /.+/))
-
-  #         subject.receive_request(request)
-  #       end
-  #     end
-
-  #     context 'and an error during generation of the node graph' do
-  #       let(:mock_return) {
-  #         value = PuppetLanguageServer::Sidecar::Protocol::NodeGraph.new()
-  #         value.dot_content = ''
-  #         value.error_content = 'MockError'
-  #         value
-  #       }
-
-  #       before(:each) do
-  #         expect(PuppetLanguageServer::PuppetHelper).to receive(:get_node_graph).with(file_content, Object).and_return(mock_return)
-  #       end
-
-  #       it 'should reply with the error text' do
-  #         expect(request).to receive(:reply_result).with(having_attributes(:error => /MockError/))
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should not reply with dotContent' do
-  #         expect(request).to receive(:reply_result).with(having_attributes(:dotContent => ''))
-
-  #         subject.receive_request(request)
-  #       end
-  #     end
-
-  #     context 'and successfully generate the node graph' do
-  #       let(:mock_return) {
-  #         value = PuppetLanguageServer::Sidecar::Protocol::NodeGraph.new()
-  #         value.dot_content = 'success'
-  #         value.error_content = ''
-  #         value
-  #       }
-
-  #       before(:each) do
-  #         expect(PuppetLanguageServer::PuppetHelper).to receive(:get_node_graph).with(file_content, Object).and_return(mock_return)
-  #       end
-
-  #       it 'should reply with dotContent' do
-  #         expect(request).to receive(:reply_result).with(having_attributes(:dotContent => /success/))
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should not reply with error' do
-  #         expect(request).to receive(:reply_result).with(having_attributes(:error => ''))
-
-  #         subject.receive_request(request)
-  #       end
-  #     end
-  #   end
-
-  #   context 'given a puppet/fixDiagnosticErrors request' do
-  #     let(:request_rpc_method) { 'puppet/fixDiagnosticErrors' }
-  #     let(:file_uri) { MANIFEST_FILENAME }
-  #     let(:return_content) { true }
-  #     let(:file_content) { 'some file content' }
-  #     let(:file_new_content) { 'some new file content' }
-  #     let(:request_params) {{
-  #       'documentUri' => file_uri,
-  #       'alwaysReturnContent' => return_content
-  #     }}
-
-  #     before(:each) do
-  #       # Create fake document store
-  #       subject.documents.clear
-  #       subject.documents.set_document(file_uri,file_content, 0)
-  #     end
-
-  #     context 'and a file which is not a puppet manifest' do
-  #       let(:file_uri) { UNKNOWN_FILENAME }
-
-  #       it 'should log an error message' do
-  #         expect(PuppetLanguageServer).to receive(:log_message).with(:error,/Unable to fixDiagnosticErrors/)
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should reply with the document uri' do
-  #         expect(request).to receive(:reply_result).with(having_attributes(:documentUri => file_uri))
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should reply with no fixes applied' do
-  #         expect(request).to receive(:reply_result).with(having_attributes(:fixesApplied => 0))
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       context 'and return_content set to true' do
-  #         let(:return_content) { true }
-
-  #         it 'should reply with document content' do
-  #           expect(request).to receive(:reply_result).with(having_attributes(:newContent => file_content))
-
-  #           subject.receive_request(request)
-  #         end
-  #       end
-
-  #       context 'and return_content set to false' do
-  #         let(:return_content) { false }
-
-  #         it 'should reply with no document content' do
-  #           expect(request).to receive(:reply_result).with(having_attributes(:newContent => nil))
-
-  #           subject.receive_request(request)
-  #         end
-  #       end
-  #     end
-
-  #     context 'for a puppet manifest file' do
-  #       let(:file_uri) { MANIFEST_FILENAME }
-
-  #       context 'and an error during fixing the validation' do
-  #         before(:each) do
-  #           expect(PuppetLanguageServer::Manifest::ValidationProvider).to receive(:fix_validate_errors).with(file_content).and_raise('MockError')
-  #         end
-
-  #         it 'should log an error message' do
-  #           expect(PuppetLanguageServer).to receive(:log_message).with(:error,/MockError/)
-
-  #           subject.receive_request(request)
-  #         end
-
-  #         it 'should reply with the document uri' do
-  #           expect(request).to receive(:reply_result).with(having_attributes(:documentUri => file_uri))
-
-  #           subject.receive_request(request)
-  #         end
-
-  #         it 'should reply with no fixes applied' do
-  #           expect(request).to receive(:reply_result).with(having_attributes(:fixesApplied => 0))
-
-  #           subject.receive_request(request)
-  #         end
-
-  #         context 'and return_content set to true' do
-  #           let(:return_content) { true }
-
-  #           it 'should reply with document content' do
-  #             expect(request).to receive(:reply_result).with(having_attributes(:newContent => file_content))
-
-  #             subject.receive_request(request)
-  #           end
-  #         end
-
-  #         context 'and return_content set to false' do
-  #           let(:return_content) { false }
-
-  #           it 'should reply with no document content' do
-  #             expect(request).to receive(:reply_result).with(having_attributes(:newContent => nil))
-
-  #             subject.receive_request(request)
-  #           end
-  #         end
-  #       end
-
-  #       context 'and succesfully fixes one or more validation errors' do
-  #         let(:applied_fixes) { 1 }
-
-  #         before(:each) do
-  #           expect(PuppetLanguageServer::Manifest::ValidationProvider).to receive(:fix_validate_errors).with(file_content).and_return([applied_fixes, file_new_content])
-  #         end
-
-  #         it 'should reply with the document uri' do
-  #           expect(request).to receive(:reply_result).with(having_attributes(:documentUri => file_uri))
-
-  #           subject.receive_request(request)
-  #         end
-
-  #         it 'should reply with the number of fixes applied' do
-  #           expect(request).to receive(:reply_result).with(having_attributes(:fixesApplied => applied_fixes))
-
-  #           subject.receive_request(request)
-  #         end
-
-  #         context 'and return_content set to true' do
-  #           let(:return_content) { true }
-
-  #           it 'should reply with document content' do
-  #             expect(request).to receive(:reply_result).with(having_attributes(:newContent => file_new_content))
-
-  #             subject.receive_request(request)
-  #           end
-  #         end
-
-  #         context 'and return_content set to false' do
-  #           let(:return_content) { false }
-
-  #           it 'should reply with document content' do
-  #             expect(request).to receive(:reply_result).with(having_attributes(:newContent => file_new_content))
-
-  #             subject.receive_request(request)
-  #           end
-  #         end
-  #       end
-
-  #       context 'and succesfully fixes zero validation errors' do
-  #         let(:applied_fixes) { 0 }
-
-  #         before(:each) do
-  #           expect(PuppetLanguageServer::Manifest::ValidationProvider).to receive(:fix_validate_errors).with(file_content).and_return([applied_fixes, file_content])
-  #         end
-
-  #         it 'should reply with the document uri' do
-  #           expect(request).to receive(:reply_result).with(having_attributes(:documentUri => file_uri))
-
-  #           subject.receive_request(request)
-  #         end
-
-  #         it 'should reply with the number of fixes applied' do
-  #           expect(request).to receive(:reply_result).with(having_attributes(:fixesApplied => applied_fixes))
-
-  #           subject.receive_request(request)
-  #         end
-
-  #         context 'and return_content set to true' do
-  #           let(:return_content) { true }
-
-  #           it 'should reply with document content' do
-  #             expect(request).to receive(:reply_result).with(having_attributes(:newContent => file_content))
-
-  #             subject.receive_request(request)
-  #           end
-  #         end
-
-  #         context 'and return_content set to false' do
-  #           let(:return_content) { false }
-
-  #           it 'should reply with no document content' do
-  #             expect(request).to receive(:reply_result).with(having_attributes(:newContent => nil))
-
-  #             subject.receive_request(request)
-  #           end
-  #         end
-  #       end
-  #     end
-  #   end
-
-  #   # textDocument/completion - https://github.com/Microsoft/language-server-protocol/blob/master/protocol.md#completion-request
-  #   context 'given a textDocument/completion request' do
-  #     let(:request_rpc_method) { 'textDocument/completion' }
-  #     let(:line_num) { 1 }
-  #     let(:char_num) { 2 }
-  #     let(:request_params) {{
-  #       'textDocument' => {
-  #         'uri' => file_uri
-  #       },
-  #       'position' => {
-  #         'line' => line_num,
-  #         'character' => char_num,
-  #       },
-  #     }}
-
-  #     context 'for a file the server does not understand' do
-  #       let(:file_uri) { UNKNOWN_FILENAME }
-
-  #       it 'should log an error message' do
-  #         expect(PuppetLanguageServer).to receive(:log_message).with(:error,/Unable to provide completion/)
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should reply with a complete, empty response' do
-  #         expect(request).to receive(:reply_result).with(having_attributes(:isIncomplete => false, :items => []))
-
-  #         subject.receive_request(request)
-  #       end
-  #     end
-
-  #     context 'for a puppet manifest file' do
-  #       let(:file_uri) { MANIFEST_FILENAME }
-  #       it 'should call complete method on the Completion Provider' do
-  #         expect(PuppetLanguageServer::Manifest::CompletionProvider).to receive(:complete).with(Object,line_num,char_num,{:tasks_mode=>false}).and_return('something')
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should set tasks_mode option if the file is Puppet plan file' do
-  #         expect(PuppetLanguageServer::Manifest::CompletionProvider).to receive(:complete).with(Object,line_num,char_num,{:tasks_mode=>true}).and_return('something')
-  #         allow(PuppetLanguageServer::DocumentStore).to receive(:plan_file?).and_return true
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       context 'and an error occurs during completion' do
-  #         before(:each) do
-  #           expect(PuppetLanguageServer::Manifest::CompletionProvider).to receive(:complete).and_raise('MockError')
-  #         end
-
-  #         it 'should log an error message' do
-  #           expect(PuppetLanguageServer).to receive(:log_message).with(:error,/MockError/)
-
-  #           subject.receive_request(request)
-  #         end
-
-  #         it 'should reply with a complete, empty response' do
-  #           expect(request).to receive(:reply_result).with(having_attributes(:isIncomplete => false, :items => []))
-
-  #           subject.receive_request(request)
-  #         end
-  #       end
-  #     end
-  #   end
+    describe '.request_puppet_compilenodegraph' do
+      let(:request_rpc_method) { 'puppet/compileNodeGraph' }
+      let(:file_uri) { MANIFEST_FILENAME }
+      let(:file_content) { 'some file content' }
+      let(:dot_content) { 'some graph content' }
+      let(:request_params) {{
+        'external' => file_uri
+      }}
+
+      before(:each) do
+        # Create fake document store
+        subject.documents.clear
+        subject.documents.set_document(file_uri,file_content, 0)
+      end
+
+      context 'and a file which is not a puppet manifest' do
+        let(:file_uri) { UNKNOWN_FILENAME }
+
+        it 'should reply with the error text' do
+          expect(subject.request_puppet_compilenodegraph(connection_handler_id, raw_request, request_params)).to have_attributes(:error => /Files of this type/)
+        end
+
+        it 'should not reply with dotContent' do
+          expect(subject.request_puppet_compilenodegraph(connection_handler_id, raw_request, request_params)).to_not have_attributes(:dotContent => /.+/)
+        end
+      end
+
+      context 'and an error during generation of the node graph' do
+        let(:mock_return) {
+          value = PuppetLanguageServer::Sidecar::Protocol::NodeGraph.new()
+          value.dot_content = ''
+          value.error_content = 'MockError'
+          value
+        }
+
+        before(:each) do
+          expect(PuppetLanguageServer::PuppetHelper).to receive(:get_node_graph).with(file_content, Object).and_return(mock_return)
+        end
+
+        it 'should reply with the error text' do
+          expect(subject.request_puppet_compilenodegraph(connection_handler_id, raw_request, request_params)).to have_attributes(:error => /MockError/)
+        end
+
+        it 'should not reply with dotContent' do
+          expect(subject.request_puppet_compilenodegraph(connection_handler_id, raw_request, request_params)).to have_attributes(:dotContent => '')
+        end
+      end
+
+      context 'and successfully generate the node graph' do
+        let(:mock_return) {
+          value = PuppetLanguageServer::Sidecar::Protocol::NodeGraph.new()
+          value.dot_content = 'success'
+          value.error_content = ''
+          value
+        }
+
+        before(:each) do
+          expect(PuppetLanguageServer::PuppetHelper).to receive(:get_node_graph).with(file_content, Object).and_return(mock_return)
+        end
+
+        it 'should reply with dotContent' do
+          expect(subject.request_puppet_compilenodegraph(connection_handler_id, raw_request, request_params)).to have_attributes(:dotContent => /success/)
+        end
+
+        it 'should not reply with error' do
+          expect(subject.request_puppet_compilenodegraph(connection_handler_id, raw_request, request_params)).to have_attributes(:error => '')
+        end
+      end
+    end
+
+    describe '.request_puppet_fixdiagnosticerrors' do
+      let(:request_rpc_method) { 'puppet/fixDiagnosticErrors' }
+      let(:file_uri) { MANIFEST_FILENAME }
+      let(:return_content) { true }
+      let(:file_content) { 'some file content' }
+      let(:file_new_content) { 'some new file content' }
+      let(:request_params) {{
+        'documentUri' => file_uri,
+        'alwaysReturnContent' => return_content
+      }}
+
+      before(:each) do
+        # Create fake document store
+        subject.documents.clear
+        subject.documents.set_document(file_uri,file_content, 0)
+      end
+
+      context 'and a file which is not a puppet manifest' do
+        let(:file_uri) { UNKNOWN_FILENAME }
+
+        it 'should log an error message' do
+          expect(PuppetLanguageServer).to receive(:log_message).with(:error,/Unable to fixDiagnosticErrors/)
+          subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)
+        end
+
+        it 'should reply with the document uri' do
+          expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:documentUri => file_uri)
+        end
+
+        it 'should reply with no fixes applied' do
+          expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:fixesApplied => 0)
+        end
+
+        context 'and return_content set to true' do
+          let(:return_content) { true }
+
+          it 'should reply with document content' do
+            expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:newContent => file_content)
+          end
+        end
+
+        context 'and return_content set to false' do
+          let(:return_content) { false }
+
+          it 'should reply with no document content' do
+            expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:newContent => nil)
+          end
+        end
+      end
+
+      context 'for a puppet manifest file' do
+        let(:file_uri) { MANIFEST_FILENAME }
+
+        context 'and an error during fixing the validation' do
+          before(:each) do
+            expect(PuppetLanguageServer::Manifest::ValidationProvider).to receive(:fix_validate_errors).with(file_content).and_raise('MockError')
+          end
+
+          it 'should log an error message' do
+            expect(PuppetLanguageServer).to receive(:log_message).with(:error,/MockError/)
+            subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)
+          end
+
+          it 'should reply with the document uri' do
+            expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:documentUri => file_uri)
+          end
+
+          it 'should reply with no fixes applied' do
+            expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:fixesApplied => 0)
+          end
+
+          context 'and return_content set to true' do
+            let(:return_content) { true }
+
+            it 'should reply with document content' do
+              expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:newContent => file_content)
+            end
+          end
+
+          context 'and return_content set to false' do
+            let(:return_content) { false }
+
+            it 'should reply with no document content' do
+              expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:newContent => nil)
+            end
+          end
+        end
+
+        context 'and succesfully fixes one or more validation errors' do
+          let(:applied_fixes) { 1 }
+
+          before(:each) do
+            expect(PuppetLanguageServer::Manifest::ValidationProvider).to receive(:fix_validate_errors).with(file_content).and_return([applied_fixes, file_new_content])
+          end
+
+          it 'should reply with the document uri' do
+            expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:documentUri => file_uri)
+          end
+
+          it 'should reply with the number of fixes applied' do
+            expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:fixesApplied => applied_fixes)
+          end
+
+          context 'and return_content set to true' do
+            let(:return_content) { true }
+
+            it 'should reply with document content' do
+              expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:newContent => file_new_content)
+            end
+          end
+
+          context 'and return_content set to false' do
+            let(:return_content) { false }
+
+            it 'should reply with document content' do
+              expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:newContent => file_new_content)
+            end
+          end
+        end
+
+        context 'and succesfully fixes zero validation errors' do
+          let(:applied_fixes) { 0 }
+
+          before(:each) do
+            expect(PuppetLanguageServer::Manifest::ValidationProvider).to receive(:fix_validate_errors).with(file_content).and_return([applied_fixes, file_content])
+          end
+
+          it 'should reply with the document uri' do
+            expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:documentUri => file_uri)
+          end
+
+          it 'should reply with the number of fixes applied' do
+            expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:fixesApplied => applied_fixes)
+          end
+
+          context 'and return_content set to true' do
+            let(:return_content) { true }
+
+            it 'should reply with document content' do
+              expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:newContent => file_content)
+            end
+          end
+
+          context 'and return_content set to false' do
+            let(:return_content) { false }
+
+            it 'should reply with no document content' do
+              expect(subject.request_puppet_fixdiagnosticerrors(connection_handler_id, raw_request, request_params)).to have_attributes(:newContent => nil)
+            end
+          end
+        end
+      end
+    end
+
+    # textDocument/completion - https://github.com/Microsoft/language-server-protocol/blob/master/protocol.md#completion-request
+    describe '.request_textdocument_completion' do
+      let(:request_rpc_method) { 'textDocument/completion' }
+      let(:line_num) { 1 }
+      let(:char_num) { 2 }
+      let(:request_params) {{
+        'textDocument' => {
+          'uri' => file_uri
+        },
+        'position' => {
+          'line' => line_num,
+          'character' => char_num,
+        },
+      }}
+
+      context 'for a file the server does not understand' do
+        let(:file_uri) { UNKNOWN_FILENAME }
+
+        it 'should log an error message' do
+          expect(PuppetLanguageServer).to receive(:log_message).with(:error,/Unable to provide completion/)
+          subject.request_textdocument_completion(connection_handler_id, raw_request, request_params)
+        end
+
+        it 'should reply with a complete, empty response' do
+          expect(subject.request_textdocument_completion(connection_handler_id, raw_request, request_params)).to have_attributes(:isIncomplete => false, :items => [])
+        end
+      end
+
+      context 'for a puppet manifest file' do
+        let(:file_uri) { MANIFEST_FILENAME }
+
+        it 'should call complete method on the Completion Provider' do
+          expect(PuppetLanguageServer::Manifest::CompletionProvider).to receive(:complete).with(Object,line_num,char_num,{:tasks_mode=>false}).and_return('something')
+          subject.request_textdocument_completion(connection_handler_id, raw_request, request_params)
+        end
+
+        it 'should set tasks_mode option if the file is Puppet plan file' do
+          expect(PuppetLanguageServer::Manifest::CompletionProvider).to receive(:complete).with(Object,line_num,char_num,{:tasks_mode=>true}).and_return('something')
+          allow(PuppetLanguageServer::DocumentStore).to receive(:plan_file?).and_return true
+          subject.request_textdocument_completion(connection_handler_id, raw_request, request_params)
+        end
+
+        context 'and an error occurs during completion' do
+          before(:each) do
+            expect(PuppetLanguageServer::Manifest::CompletionProvider).to receive(:complete).and_raise('MockError')
+          end
+
+          it 'should log an error message' do
+            expect(PuppetLanguageServer).to receive(:log_message).with(:error,/MockError/)
+            subject.request_textdocument_completion(connection_handler_id, raw_request, request_params)
+          end
+
+          it 'should reply with a complete, empty response' do
+            expect(subject.request_textdocument_completion(connection_handler_id, raw_request, request_params)).to have_attributes(:isIncomplete => false, :items => [])
+          end
+        end
+      end
+    end
 
     # completionItem/resolve - https://github.com/Microsoft/language-server-protocol/blob/gh-pages/specification.md#completion-item-resolve-request-leftwards_arrow_with_hook
     describe '.request_completionitem_resolve' do
@@ -624,298 +571,266 @@ describe 'PuppetLanguageServer::MessageHandler' do
       end
     end
 
-  #   # textDocument/hover - https://github.com/Microsoft/language-server-protocol/blob/gh-pages/specification.md#hover-request-leftwards_arrow_with_hook
-  #   context 'given a textDocument/hover request' do
-  #     let(:request_rpc_method) { 'textDocument/hover' }
-  #     let(:line_num) { 1 }
-  #     let(:char_num) { 2 }
-  #     let(:request_params) {{
-  #       'textDocument' => {
-  #         'uri' => file_uri
-  #       },
-  #       'position' => {
-  #         'line' => line_num,
-  #         'character' => char_num,
-  #       },
-  #     }}
-
-  #     context 'for a file the server does not understand' do
-  #       let(:file_uri) { UNKNOWN_FILENAME }
-
-  #       it 'should log an error message' do
-  #         expect(PuppetLanguageServer).to receive(:log_message).with(:error,/Unable to provide hover/)
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should reply with nil for the contents' do
-  #         expect(request).to receive(:reply_result).with(having_attributes(:contents => nil))
-
-  #         subject.receive_request(request)
-  #       end
-  #     end
-
-  #     context 'for a puppet manifest file' do
-  #       let(:file_uri) { MANIFEST_FILENAME }
-
-  #       it 'should call resolve method on the Hover Provider' do
-  #         expect(PuppetLanguageServer::Manifest::HoverProvider).to receive(:resolve).with(Object,line_num,char_num,{:tasks_mode=>false}).and_return('something')
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should set tasks_mode option if the file is Puppet plan file' do
-  #         expect(PuppetLanguageServer::Manifest::HoverProvider).to receive(:resolve).with(Object,line_num,char_num,{:tasks_mode=>true}).and_return('something')
-  #         allow(PuppetLanguageServer::DocumentStore).to receive(:plan_file?).and_return true
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       context 'and an error occurs during resolution' do
-  #         before(:each) do
-  #           expect(PuppetLanguageServer::Manifest::HoverProvider).to receive(:resolve).and_raise('MockError')
-  #         end
-
-  #         it 'should log an error message' do
-  #           expect(PuppetLanguageServer).to receive(:log_message).with(:error,/MockError/)
-
-  #           subject.receive_request(request)
-  #         end
-
-  #         it 'should reply with nil for the contents' do
-  #           expect(request).to receive(:reply_result).with(having_attributes(:contents => nil))
-
-  #           subject.receive_request(request)
-  #         end
-  #       end
-  #     end
-  #   end
-
-  #   # textDocument/definition - https://github.com/Microsoft/language-server-protocol/blob/gh-pages/specification.md#goto-definition-request-leftwards_arrow_with_hook
-  #   context 'given a textDocument/definition request' do
-  #     let(:request_rpc_method) { 'textDocument/definition' }
-  #     let(:line_num) { 1 }
-  #     let(:char_num) { 2 }
-  #     let(:request_params) {{
-  #       'textDocument' => {
-  #         'uri' => file_uri
-  #       },
-  #       'position' => {
-  #         'line' => line_num,
-  #         'character' => char_num,
-  #       },
-  #     }}
-
-  #     context 'for a file the server does not understand' do
-  #       let(:file_uri) { UNKNOWN_FILENAME }
-
-  #       it 'should log an error message' do
-  #         expect(PuppetLanguageServer).to receive(:log_message).with(:error,/Unable to provide definition/)
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should reply with nil' do
-  #         expect(request).to receive(:reply_result).with(nil)
-
-  #         subject.receive_request(request)
-  #       end
-  #     end
-
-  #     context 'for a puppet manifest file' do
-  #       let(:file_uri) { MANIFEST_FILENAME }
-
-  #       it 'should call find_definition method on the Definition Provider' do
-  #         expect(PuppetLanguageServer::Manifest::DefinitionProvider).to receive(:find_definition)
-  #           .with(Object,line_num,char_num,{:tasks_mode=>false}).and_return('something')
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should set tasks_mode option if the file is Puppet plan file' do
-  #         expect(PuppetLanguageServer::Manifest::DefinitionProvider).to receive(:find_definition)
-  #           .with(Object,line_num,char_num,{:tasks_mode=>true}).and_return('something')
-  #         allow(PuppetLanguageServer::DocumentStore).to receive(:plan_file?).and_return true
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       context 'and an error occurs during definition' do
-  #         before(:each) do
-  #           expect(PuppetLanguageServer::Manifest::DefinitionProvider).to receive(:find_definition).and_raise('MockError')
-  #         end
-
-  #         it 'should log an error message' do
-  #           expect(PuppetLanguageServer).to receive(:log_message).with(:error,/MockError/)
-
-  #           subject.receive_request(request)
-  #         end
-
-  #         it 'should reply with nil' do
-  #           expect(request).to receive(:reply_result).with(nil)
-
-  #           subject.receive_request(request)
-  #         end
-  #       end
-  #     end
-  #   end
-
-  #   # textDocument/documentSymbol - https://github.com/Microsoft/language-server-protocol/blob/gh-pages/specification.md#document-symbols-request-leftwards_arrow_with_hook
-  #   context 'given a textDocument/documentSymbol request' do
-  #     let(:request_rpc_method) { 'textDocument/documentSymbol' }
-  #     let(:request_params) {{
-  #       'textDocument' => {
-  #         'uri' => file_uri
-  #       }
-  #     }}
-
-  #     context 'for a file the server does not understand' do
-  #       let(:file_uri) { UNKNOWN_FILENAME }
-
-  #       it 'should log an error message' do
-  #         expect(PuppetLanguageServer).to receive(:log_message).with(:error,/Unable to provide definition/)
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should reply with nil' do
-  #         expect(request).to receive(:reply_result).with(nil)
-
-  #         subject.receive_request(request)
-  #       end
-  #     end
-
-  #     context 'for a puppet manifest file' do
-  #       let(:file_uri) { MANIFEST_FILENAME }
-
-  #       it 'should call extract_document_symbols method on the Document Symbol Provider' do
-  #         expect(PuppetLanguageServer::Manifest::DocumentSymbolProvider).to receive(:extract_document_symbols)
-  #           .with(Object,{:tasks_mode=>false}).and_return('something')
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       it 'should set tasks_mode option if the file is Puppet plan file' do
-  #         expect(PuppetLanguageServer::Manifest::DocumentSymbolProvider).to receive(:extract_document_symbols)
-  #           .with(Object,{:tasks_mode=>true}).and_return('something')
-  #         allow(PuppetLanguageServer::DocumentStore).to receive(:plan_file?).and_return true
-
-  #         subject.receive_request(request)
-  #       end
-
-  #       context 'and an error occurs during extraction' do
-  #         before(:each) do
-  #           expect(PuppetLanguageServer::Manifest::DocumentSymbolProvider).to receive(:extract_document_symbols).and_raise('MockError')
-  #         end
-
-  #         it 'should log an error message' do
-  #           expect(PuppetLanguageServer).to receive(:log_message).with(:error,/MockError/)
-
-  #           subject.receive_request(request)
-  #         end
-
-  #         it 'should reply with nil' do
-  #           expect(request).to receive(:reply_result).with(nil)
-
-  #           subject.receive_request(request)
-  #         end
-  #       end
-  #     end
-  #   end
-
-  #   # textDocument/onTypeFormatting - https://microsoft.github.io/language-server-protocol/specification#textDocument_onTypeFormatting
-  #   context 'given a textDocument/onTypeFormatting request' do
-  #     let(:request_rpc_method) { 'textDocument/onTypeFormatting' }
-  #     let(:file_uri) { MANIFEST_FILENAME }
-  #     let(:file_content) { "{\n  a =>\n  name => 'value'\n}\n" }
-  #     let(:line_num) { 1 }
-  #     let(:char_num) { 6 }
-  #     let(:trigger_char) { '>' }
-  #     let(:formatting_options) { { 'tabSize' => 2, 'insertSpaces' => true} }
-  #     let(:request_params) { {
-  #       'textDocument' => {
-  #         'uri' => file_uri
-  #       },
-  #       'position' => {
-  #         'line' => line_num,
-  #         'character' => char_num,
-  #       },
-  #       'ch' => trigger_char,
-  #       'options' => formatting_options
-  #     } }
-  #     let(:provider) { PuppetLanguageServer::Manifest::FormatOnTypeProvider.new }
-
-  #     before(:each) do
-  #       subject.documents.clear
-  #       subject.documents.set_document(file_uri,file_content, 0)
-  #     end
-
-  #     context 'with client.format_on_type set to false' do
-  #       before(:each) do
-  #         allow(subject.client).to receive(:format_on_type).and_return(false)
-  #       end
-
-  #       it 'should reply with nil' do
-  #         expect(request).to receive(:reply_result).with(nil)
-  #         subject.receive_request(request)
-  #       end
-  #     end
-
-  #     context 'with client.format_on_type set to true' do
-  #       before(:each) do
-  #         allow(subject.client).to receive(:format_on_type).and_return(true)
-  #       end
-
-  #       context 'for a file the server does not understand' do
-  #         let(:file_uri) { UNKNOWN_FILENAME }
-
-  #         it 'should log an error message' do
-  #           expect(PuppetLanguageServer).to receive(:log_message).with(:error,/Unable to format on type on/)
-
-  #           subject.receive_request(request)
-  #         end
-
-  #         it 'should reply with nil' do
-  #           expect(request).to receive(:reply_result).with(nil)
-
-  #           subject.receive_request(request)
-  #         end
-  #       end
-
-  #       context 'for a puppet manifest file' do
-  #         let(:file_uri) { MANIFEST_FILENAME }
-
-  #         before(:each) do
-  #           allow(PuppetLanguageServer::Manifest::FormatOnTypeProvider).to receive(:instance).and_return(provider)
-  #         end
-
-  #         it 'should call format method on the Format On Type provider' do
-  #           expect(provider).to receive(:format)
-  #             .with(file_content, line_num, char_num, trigger_char, formatting_options).and_return('something')
-
-  #           result = subject.receive_request(request)
-  #         end
-
-  #         context 'and an error occurs during formatting' do
-  #           before(:each) do
-  #             expect(provider).to receive(:format).and_raise('MockError')
-  #           end
-
-  #           it 'should log an error message' do
-  #             expect(PuppetLanguageServer).to receive(:log_message).with(:error,/MockError/)
-
-  #             subject.receive_request(request)
-  #           end
-
-  #           it 'should reply with nil' do
-  #             expect(request).to receive(:reply_result).with(nil)
-
-  #             subject.receive_request(request)
-  #           end
-  #         end
-  #       end
-  #     end
-  #   end
+    # textDocument/hover - https://github.com/Microsoft/language-server-protocol/blob/gh-pages/specification.md#hover-request-leftwards_arrow_with_hook
+    describe '.request_textdocument_hover' do
+      let(:request_rpc_method) { 'textDocument/hover' }
+      let(:line_num) { 1 }
+      let(:char_num) { 2 }
+      let(:request_params) {{
+        'textDocument' => {
+          'uri' => file_uri
+        },
+        'position' => {
+          'line' => line_num,
+          'character' => char_num,
+        },
+      }}
+
+      context 'for a file the server does not understand' do
+        let(:file_uri) { UNKNOWN_FILENAME }
+
+        it 'should log an error message' do
+          expect(PuppetLanguageServer).to receive(:log_message).with(:error,/Unable to provide hover/)
+          subject.request_textdocument_hover(connection_handler_id, raw_request, request_params)
+        end
+
+        it 'should reply with nil for the contents' do
+          expect(subject.request_textdocument_hover(connection_handler_id, raw_request, request_params)).to have_attributes(:contents => nil)
+        end
+      end
+
+      context 'for a puppet manifest file' do
+        let(:file_uri) { MANIFEST_FILENAME }
+
+        it 'should call resolve method on the Hover Provider' do
+          expect(PuppetLanguageServer::Manifest::HoverProvider).to receive(:resolve).with(Object,line_num,char_num,{:tasks_mode=>false}).and_return('something')
+          subject.request_textdocument_hover(connection_handler_id, raw_request, request_params)
+        end
+
+        it 'should set tasks_mode option if the file is Puppet plan file' do
+          expect(PuppetLanguageServer::Manifest::HoverProvider).to receive(:resolve).with(Object,line_num,char_num,{:tasks_mode=>true}).and_return('something')
+          allow(PuppetLanguageServer::DocumentStore).to receive(:plan_file?).and_return true
+          subject.request_textdocument_hover(connection_handler_id, raw_request, request_params)
+        end
+
+        context 'and an error occurs during resolution' do
+          before(:each) do
+            expect(PuppetLanguageServer::Manifest::HoverProvider).to receive(:resolve).and_raise('MockError')
+          end
+
+          it 'should log an error message' do
+            expect(PuppetLanguageServer).to receive(:log_message).with(:error,/MockError/)
+            subject.request_textdocument_hover(connection_handler_id, raw_request, request_params)
+          end
+
+          it 'should reply with nil for the contents' do
+            expect(subject.request_textdocument_hover(connection_handler_id, raw_request, request_params)).to have_attributes(:contents => nil)
+          end
+        end
+      end
+    end
+
+    # textDocument/definition - https://github.com/Microsoft/language-server-protocol/blob/gh-pages/specification.md#goto-definition-request-leftwards_arrow_with_hook
+    describe '.request_textdocument_definition' do
+      let(:request_rpc_method) { 'textDocument/definition' }
+      let(:line_num) { 1 }
+      let(:char_num) { 2 }
+      let(:request_params) {{
+        'textDocument' => {
+          'uri' => file_uri
+        },
+        'position' => {
+          'line' => line_num,
+          'character' => char_num,
+        },
+      }}
+
+      context 'for a file the server does not understand' do
+        let(:file_uri) { UNKNOWN_FILENAME }
+
+        it 'should log an error message' do
+          expect(PuppetLanguageServer).to receive(:log_message).with(:error,/Unable to provide definition/)
+          subject.request_textdocument_definition(connection_handler_id, raw_request, request_params)
+        end
+
+        it 'should reply with nil' do
+          expect(subject.request_textdocument_definition(connection_handler_id, raw_request, request_params)).to be_nil
+        end
+      end
+
+      context 'for a puppet manifest file' do
+        let(:file_uri) { MANIFEST_FILENAME }
+
+        it 'should call find_definition method on the Definition Provider' do
+          expect(PuppetLanguageServer::Manifest::DefinitionProvider).to receive(:find_definition)
+            .with(Object,line_num,char_num,{:tasks_mode=>false}).and_return('something')
+          subject.request_textdocument_definition(connection_handler_id, raw_request, request_params)
+        end
+
+        it 'should set tasks_mode option if the file is Puppet plan file' do
+          expect(PuppetLanguageServer::Manifest::DefinitionProvider).to receive(:find_definition)
+            .with(Object,line_num,char_num,{:tasks_mode=>true}).and_return('something')
+          allow(PuppetLanguageServer::DocumentStore).to receive(:plan_file?).and_return true
+          subject.request_textdocument_definition(connection_handler_id, raw_request, request_params)
+        end
+
+        context 'and an error occurs during definition' do
+          before(:each) do
+            expect(PuppetLanguageServer::Manifest::DefinitionProvider).to receive(:find_definition).and_raise('MockError')
+          end
+
+          it 'should log an error message' do
+            expect(PuppetLanguageServer).to receive(:log_message).with(:error,/MockError/)
+            subject.request_textdocument_definition(connection_handler_id, raw_request, request_params)
+          end
+
+          it 'should reply with nil' do
+            expect(subject.request_textdocument_definition(connection_handler_id, raw_request, request_params)).to be_nil
+          end
+        end
+      end
+    end
+
+    # textDocument/documentSymbol - https://github.com/Microsoft/language-server-protocol/blob/gh-pages/specification.md#document-symbols-request-leftwards_arrow_with_hook
+    describe '.request_textdocument_documentsymbol' do
+      let(:request_rpc_method) { 'textDocument/documentSymbol' }
+      let(:request_params) {{
+        'textDocument' => {
+          'uri' => file_uri
+        }
+      }}
+
+      context 'for a file the server does not understand' do
+        let(:file_uri) { UNKNOWN_FILENAME }
+
+        it 'should log an error message' do
+          expect(PuppetLanguageServer).to receive(:log_message).with(:error,/Unable to provide definition/)
+          subject.request_textdocument_documentsymbol(connection_handler_id, raw_request, request_params)
+        end
+
+        it 'should reply with nil' do
+          expect(subject.request_textdocument_documentsymbol(connection_handler_id, raw_request, request_params)).to be_nil
+        end
+      end
+
+      context 'for a puppet manifest file' do
+        let(:file_uri) { MANIFEST_FILENAME }
+
+        it 'should call extract_document_symbols method on the Document Symbol Provider' do
+          expect(PuppetLanguageServer::Manifest::DocumentSymbolProvider).to receive(:extract_document_symbols)
+            .with(Object,{:tasks_mode=>false}).and_return('something')
+          subject.request_textdocument_documentsymbol(connection_handler_id, raw_request, request_params)
+        end
+
+        it 'should set tasks_mode option if the file is Puppet plan file' do
+          expect(PuppetLanguageServer::Manifest::DocumentSymbolProvider).to receive(:extract_document_symbols)
+            .with(Object,{:tasks_mode=>true}).and_return('something')
+          allow(PuppetLanguageServer::DocumentStore).to receive(:plan_file?).and_return true
+          subject.request_textdocument_documentsymbol(connection_handler_id, raw_request, request_params)
+        end
+
+        context 'and an error occurs during extraction' do
+          before(:each) do
+            expect(PuppetLanguageServer::Manifest::DocumentSymbolProvider).to receive(:extract_document_symbols).and_raise('MockError')
+          end
+
+          it 'should log an error message' do
+            expect(PuppetLanguageServer).to receive(:log_message).with(:error,/MockError/)
+            subject.request_textdocument_documentsymbol(connection_handler_id, raw_request, request_params)
+          end
+
+          it 'should reply with nil' do
+            expect(subject.request_textdocument_documentsymbol(connection_handler_id, raw_request, request_params)).to be_nil
+          end
+        end
+      end
+    end
+
+    # textDocument/onTypeFormatting - https://microsoft.github.io/language-server-protocol/specification#textDocument_onTypeFormatting
+    describe '.request_textdocument_ontypeformatting' do
+      let(:request_rpc_method) { 'textDocument/onTypeFormatting' }
+      let(:file_uri) { MANIFEST_FILENAME }
+      let(:file_content) { "{\n  a =>\n  name => 'value'\n}\n" }
+      let(:line_num) { 1 }
+      let(:char_num) { 6 }
+      let(:trigger_char) { '>' }
+      let(:formatting_options) { { 'tabSize' => 2, 'insertSpaces' => true} }
+      let(:request_params) { {
+        'textDocument' => {
+          'uri' => file_uri
+        },
+        'position' => {
+          'line' => line_num,
+          'character' => char_num,
+        },
+        'ch' => trigger_char,
+        'options' => formatting_options
+      } }
+      let(:provider) { PuppetLanguageServer::Manifest::FormatOnTypeProvider.new }
+
+      before(:each) do
+        subject.documents.clear
+        subject.documents.set_document(file_uri,file_content, 0)
+      end
+
+      context 'with client.format_on_type set to false' do
+        before(:each) do
+          allow(subject.language_client).to receive(:format_on_type).and_return(false)
+        end
+
+        it 'should reply with nil' do
+          expect(subject.request_textdocument_ontypeformatting(connection_handler_id, raw_request, request_params)).to be_nil
+        end
+      end
+
+      context 'with client.format_on_type set to true' do
+        before(:each) do
+          allow(subject.language_client).to receive(:format_on_type).and_return(true)
+        end
+
+        context 'for a file the server does not understand' do
+          let(:file_uri) { UNKNOWN_FILENAME }
+
+          it 'should log an error message' do
+            expect(PuppetLanguageServer).to receive(:log_message).with(:error,/Unable to format on type on/)
+            subject.request_textdocument_ontypeformatting(connection_handler_id, raw_request, request_params)
+          end
+
+          it 'should reply with nil' do
+            expect(subject.request_textdocument_ontypeformatting(connection_handler_id, raw_request, request_params)).to be_nil
+          end
+        end
+
+        context 'for a puppet manifest file' do
+          let(:file_uri) { MANIFEST_FILENAME }
+
+          before(:each) do
+            allow(PuppetLanguageServer::Manifest::FormatOnTypeProvider).to receive(:instance).and_return(provider)
+          end
+
+          it 'should call format method on the Format On Type provider' do
+            expect(provider).to receive(:format)
+              .with(file_content, line_num, char_num, trigger_char, formatting_options).and_return('something')
+            subject.request_textdocument_ontypeformatting(connection_handler_id, raw_request, request_params)
+          end
+
+          context 'and an error occurs during formatting' do
+            before(:each) do
+              expect(provider).to receive(:format).and_raise('MockError')
+            end
+
+            it 'should log an error message' do
+              expect(PuppetLanguageServer).to receive(:log_message).with(:error,/MockError/)
+              subject.request_textdocument_ontypeformatting(connection_handler_id, raw_request, request_params)
+            end
+
+            it 'should reply with nil' do
+              expect(subject.request_textdocument_ontypeformatting(connection_handler_id, raw_request, request_params)).to be_nil
+            end
+          end
+        end
+      end
+    end
 
   #   context 'given an unknown request' do
   #     let(:request_rpc_method) { 'unknown_request_method' }

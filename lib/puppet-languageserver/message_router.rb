@@ -61,7 +61,7 @@ module PuppetLanguageServer
 
     def request_puppet_compilenodegraph(_, _raw_request, params)
       file_uri = params['external']
-      return request.reply_result(LSP::CompileNodeGraphResponse.new('error' => 'Files of this type can not be used to create a node graph.')) unless documents.document_type(file_uri) == :manifest
+      return LSP::CompileNodeGraphResponse.new('error' => 'Files of this type can not be used to create a node graph.') unless documents.document_type(file_uri) == :manifest
       content = documents.document(file_uri)
 
       begin
@@ -74,7 +74,7 @@ module PuppetLanguageServer
       end
     end
 
-    def request_fixdiagnosticerrors(_, _raw_request, params)
+    def request_puppet_fixdiagnosticerrors(_, _raw_request, params)
       formatted_request = LSP::PuppetFixDiagnosticErrorsRequest.new(params)
       file_uri = formatted_request.documentUri
       content = documents.document(file_uri)
@@ -176,7 +176,7 @@ module PuppetLanguageServer
     end
 
     def request_textdocument_ontypeformatting(_, _raw_request, params)
-      return nil unless client.format_on_type
+      return nil unless language_client.format_on_type
       file_uri = params['textDocument']['uri']
       line_num = params['position']['line']
       char_num = params['position']['character']
@@ -188,8 +188,8 @@ module PuppetLanguageServer
           content,
           line_num,
           char_num,
-          request.params['ch'],
-          request.params['options']
+          params['ch'],
+          params['options']
         )
       else
         raise "Unable to format on type on #{file_uri}"
