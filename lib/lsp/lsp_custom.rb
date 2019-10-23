@@ -128,14 +128,26 @@ module LSP
 
   class RequestMessage < Message
     attr_accessor :id
-    attr_accessor :method
+    attr_accessor :method__lsp
     attr_accessor :params
 
     def from_h!(value)
-      value = {} if value.nil?
-      self.id     = value['id']
-      self.method = value['method']
-      self.params = value['params']
+      super(value)
+      self.id          = value['id']
+      self.method__lsp = value['method']
+      self.params      = value['params']
+      self
+    end
+  end
+
+  class NotificationMessage < Message
+    attr_accessor :method__lsp # : string;
+    attr_accessor :params # ?: Array<any> | object;
+
+    def from_h!(value)
+      super(value)
+      self.method__lsp = value['method']
+      self.params = DidOpenTextDocumentParams.new(value['params'])
       self
     end
   end
@@ -159,7 +171,7 @@ module LSP
     end
 
     def from_h!(value)
-      value                      = {} if value.nil?
+      super(value)
       self.processId             = value['processId']
       self.rootPath              = value['rootPath']
       self.rootUri               = value['rootUri']
@@ -167,6 +179,53 @@ module LSP
       self.capabilities          = ClientCapabilities.new(value['capabilities'])
       self.trace                 = value['trace']
       self.workspaceFolders      = value['workspaceFolders']
+      self
+    end
+  end
+
+  class DidOpenTextDocumentNotification < NotificationMessage
+    attr_accessor :textDocument # TextDocumentItem
+
+    def from_h!(value)
+      super(value)
+      self.textDocument = LSP::TextDocumentItem.new(value['textDocument'])
+      self
+    end
+  end
+
+  class DidCloseTextDocumentNotification < NotificationMessage
+    attr_accessor :textDocument # TextDocumentItem
+
+    def from_h!(value)
+      super(value)
+      self.textDocument = LSP::TextDocumentItem.new(value['textDocument'])
+      self
+    end
+  end
+
+  class DidChangeTextDocumentNotification < NotificationMessage
+    attr_accessor :textDocument # TextDocumentItem
+    attr_accessor :contentChanges # TextDocumentContentChangeEvent[]
+
+    def from_h!(value)
+      super(value)
+      self.textDocument = LSP::TextDocumentItem.new(value['textDocument'])
+      # todo is array?
+      self.contentChanges = [LSP::TextDocumentContentChangeEvent.new(value['contentChanges'])]
+      self
+    end
+  end
+
+  class TextDocumentContentChangeEvent < LSPBase
+    attr_accessor :range #?: Range;
+    attr_accessor :rangeLength #?: number;
+    attr_accessor :text #: string;
+
+    def from_h!(value)
+      value            = {} if value.nil?
+      self.range       = LSP::Range.new(value['range'])
+      self.rangeLength = value['rangeLength']
+      self.text        = value['text']
       self
     end
   end

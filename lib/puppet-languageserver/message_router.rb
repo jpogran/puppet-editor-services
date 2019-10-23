@@ -265,26 +265,44 @@ module PuppetLanguageServer
 
     def notification_textdocument_didopen(client_handler_id, _raw_request, params)
       PuppetLanguageServer.log_message(:info, 'Received textDocument/didOpen notification.')
-      file_uri = params['textDocument']['uri']
-      content = params['textDocument']['text']
-      doc_version = params['textDocument']['version']
-      documents.set_document(file_uri, content, doc_version)
-      PuppetLanguageServer::ValidationQueue.enqueue(file_uri, doc_version, client_handler_id)
+
+      notification = LSP::DidOpenTextDocumentNotification.new(params)
+
+      documents.set_document(
+        notification.textDocument.uri,
+        notification.textDocument.text,
+        notification.textDocument.version
+      )
+      PuppetLanguageServer::ValidationQueue.enqueue(
+        notification.textDocument.uri,
+        notification.textDocument.version,
+        client_handler_id
+      )
     end
 
     def notification_textdocument_didclose(_, _raw_request, params)
       PuppetLanguageServer.log_message(:info, 'Received textDocument/didClose notification.')
-      file_uri = params['textDocument']['uri']
-      documents.remove_document(file_uri)
+      notification = LSP::DidChangeTextDocumentNotification.new(params)
+      documents.remove_document(notification.textDocument.uri)
     end
 
     def notification_textdocument_didchange(client_handler_id, _raw_request, params)
       PuppetLanguageServer.log_message(:info, 'Received textDocument/didChange notification.')
-      file_uri = params['textDocument']['uri']
-      content = params['contentChanges'][0]['text'] # TODO: Bad hardcoding zero
-      doc_version = params['textDocument']['version']
-      documents.set_document(file_uri, content, doc_version)
-      PuppetLanguageServer::ValidationQueue.enqueue(file_uri, doc_version, client_handler_id)
+
+      notification = LSP::DidChangeTextDocumentNotification.new(params)
+      content = notification.contentChanges[0].text # TODO: Bad hardcoding zero
+
+      documents.set_document(
+        notification.textDocument.uri,
+        content,
+        notification.textDocument.version
+      )
+
+      PuppetLanguageServer::ValidationQueue.enqueue(
+        notification.textDocument.uri,
+        notification.textDocument.version,
+        client_handler_id
+      )
     end
 
     def notification_textdocument_didsave(_, _raw_request, _params)
