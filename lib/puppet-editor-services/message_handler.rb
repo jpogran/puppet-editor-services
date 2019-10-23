@@ -7,7 +7,7 @@ module PuppetEditorServices
 
     def initialize(connection_handler, options = {})
       @connection_handler = connection_handler
-      @handler_creation_options = options.dup
+      @handler_creation_options = options.nil? ? {} : options.dup
     end
 
     # @abstract
