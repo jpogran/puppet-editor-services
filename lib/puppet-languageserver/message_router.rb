@@ -23,10 +23,13 @@ module PuppetLanguageServer
 
     def request_initialize(_, _raw_request, params)
       PuppetLanguageServer.log_message(:debug, 'Received initialize method')
+
+      request = LSP::InitializeRequest.new(params)
+
       language_client.parse_lsp_initialize!(params)
       # Setup static registrations if dynamic registration is not available
       info = {
-        :documentOnTypeFormattingProvider => !language_client.client_capability('textDocument', 'onTypeFormatting', 'dynamicRegistration')
+        :documentOnTypeFormattingProvider => !request.capabilities.textDocument.onTypeFormatting['dynamicRegistration']
       }
 
       { 'capabilities' => PuppetLanguageServer::ServerCapabilites.capabilities(info) }
