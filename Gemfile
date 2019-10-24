@@ -17,6 +17,13 @@ group :development do
   else
     gem "rubocop", ">= 0.60.0", :require => false, :platforms => [:ruby, :x64_mingw]
   end
+  gem 'pry-byebug', '~> 3.4'
+  if RUBY_VERSION < '2.2.2'
+    # byebug >= 9.1.0 requires ruby 2.2.0 or newer
+    gem 'byebug', '~> 9.0.6'
+    # required for github_changelog_generator
+    gem 'rack', '~> 1.0'
+  end
 
   if ENV['PUPPET_GEM_VERSION']
     gem 'puppet', ENV['PUPPET_GEM_VERSION'], :require => false
