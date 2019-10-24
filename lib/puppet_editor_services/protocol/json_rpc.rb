@@ -2,11 +2,12 @@
 
 require 'json'
 require 'puppet_editor_services/logging'
+require 'puppet_editor_services/protocol/json_rpc_messages'
 require 'puppet_editor_services/protocol/base'
 
 module PuppetEditorServices
   module Protocol
-    class JsonRPC < PuppetEditorServices::Protocol::Base
+    class JsonRPC < ::PuppetEditorServices::Protocol::Base
       CODE_INVALID_JSON       = -32700
       MSG_INVALID_JSON        = 'invalid JSON'
 
@@ -33,32 +34,21 @@ module PuppetEditorServices
                                       '"code":-32099,' \
                                       '"message":"batch mode not implemented"}}'
 
-      KEY_JSONRPC   = 'jsonrpc'
-      VALUE_VERSION = '2.0'
-      KEY_ID        = 'id'
-      KEY_METHOD    = 'method'
-      KEY_PARAMS    = 'params'
-      KEY_RESULT    = 'result'
-      KEY_ERROR     = 'error'
-      KEY_CODE      = 'code'
-      KEY_MESSAGE   = 'message'
+      KEY_JSONRPC     = 'jsonrpc'
+      JSONRPC_VERSION = '2.0'
+      KEY_ID          = 'id'
+      KEY_METHOD      = 'method'
+      KEY_PARAMS      = 'params'
+      KEY_RESULT      = 'result'
+      KEY_ERROR       = 'error'
+      KEY_CODE        = 'code'
+      KEY_MESSAGE     = 'message'
 
       def initialize(connection)
         super(connection)
 
-        options = protocol_options
-
         @state = :data
         @buffer = []
-
-        # TODO: BROKEN
-        @message_handler = nil
-        # if options[:message_handler_class].nil?
-        #   @message_handler = PuppetEditorServices::BaseMessageHandler.new(self, options)
-        # else
-        #   @message_handler = options[:message_handler_class].new(self, options)
-        # end
-        # TODO: Do I need this? @message_handler.json_rpc_handler = self
 
         @request_sequence_id = 0
         @requests = {}
@@ -126,7 +116,7 @@ module PuppetEditorServices
           @buffer = [] if @buffer.nil?
 
           PuppetEditorServices.log_message(:debug, "--- INBOUND\n#{content}\n---")
-          process_parsed_object(::JSON.parse(content))
+          receive_json_message_as_string(content)
         end
       end
 
@@ -134,7 +124,7 @@ module PuppetEditorServices
         PuppetEditorServices.log_message(:debug, "--- OUTBOUND\n#{string}\n---")
 
         size = string.bytesize if string.respond_to?(:bytesize)
-        @client_connection.send_data "Content-Length: #{size}\r\n\r\n" + string
+        connection.send_data "Content-Length: #{size}\r\n\r\n" + string
       end
 
       def encode_and_send(object)
@@ -142,46 +132,54 @@ module PuppetEditorServices
       end
 
       # Seperate method so async JSON processing can be supported.
-      def process_parsed_object(obj)
-puts obj
-return
-        return process_message(obj) if obj.is_a?(Hash)
-        return unless obj.is_a?(Array)
+      def receive_json_message_as_string(content)
+        json_obj = ::JSON.parse(content)
+        return receive_json_message_as_hash(json_obj) if json_obj.is_a?(Hash)
+        return unless json_obj.is_a?(Array)
         # Batch: multiple requests/notifications in an array.
         # NOTE: Not implemented as it doesn't make sense using JSON RPC over pure TCP / UnixSocket.
-        batch_not_supported_error obj
+
+        # TODO: this should just be a log message
+        # batch_not_supported_error json_obj
         send_json_string BATCH_NOT_SUPPORTED_RESPONSE
-        close_connection_after_writing
+
+        connection.close_after_writing
         @state = :ignore
       end
 
-      def process_message(obj)
-        unless obj[KEY_JSONRPC] == '2.0'
-          invalid_request obj, CODE_INVALID_REQUEST, MSG_INVALID_REQ_JSONRPC
+      def receive_json_message_as_hash(json_obj)
+        # There's no need to convert it to an object quite yet
+        # Need to validate that this is indeed a valid message
+        unless json_obj[KEY_JSONRPC] == JSONRPC_VERSION
+          # TODO: This should just be a log message
+          # invalid_request json_obj, CODE_INVALID_REQUEST, MSG_INVALID_REQ_JSONRPC
           reply_error id, CODE_INVALID_REQUEST, MSG_INVALID_REQ_JSONRPC
           return false
         end
 
         # Requests must have an ID and Method
-        is_request = obj.key?(KEY_ID) && obj.key?(KEY_METHOD)
+        is_request = json_obj.key?(KEY_ID) && json_obj.key?(KEY_METHOD)
         # Notifications must have a Method but no ID
-        is_notification = obj.key?(KEY_METHOD) && !obj.key?(KEY_ID)
+        is_notification = json_obj.key?(KEY_METHOD) && !json_obj.key?(KEY_ID)
         # Responses must have an ID, no Method but one of Result or Error
-        is_response = obj.key?(KEY_ID) && !obj.key?(KEY_METHOD) && (obj.key?(KEY_RESULT) || obj.key?(KEY_ERROR))
+        is_response = json_obj.key?(KEY_ID) && !json_obj.key?(KEY_METHOD) && (json_obj.key?(KEY_RESULT) || json_obj.key?(KEY_ERROR))
 
-        if (params = obj[KEY_PARAMS])
+        # The 'params' attribute must be a hash or an array
+        if (params = json_obj[KEY_PARAMS])
           unless params.is_a?(Array) || params.is_a?(Hash)
-            invalid_request obj, CODE_INVALID_REQUEST, MSG_INVALID_REQ_PARAMS
+            # TODO: This should just be a log message
+            # invalid_request obj, CODE_INVALID_REQUEST, MSG_INVALID_REQ_PARAMS
             reply_error id, CODE_INVALID_REQUEST, MSG_INVALID_REQ_PARAMS
             return false
           end
         end
 
-        id = obj[KEY_ID]
+        id = json_obj[KEY_ID]
         # Requests and Responses must have an ID that is either a string or integer
         if is_request || is_response
           unless id.is_a?(String) || id.is_a?(Integer)
-            invalid_request obj, CODE_INVALID_REQUEST, MSG_INVALID_REQ_ID
+            # TODO: This should just be a log message
+            # invalid_request obj, CODE_INVALID_REQUEST, MSG_INVALID_REQ_ID
             reply_error nil, CODE_INVALID_REQUEST, MSG_INVALID_REQ_ID
             return false
           end
@@ -189,8 +187,9 @@ return
 
         # Requests and Notifications must have a method
         if is_request || is_notification
-          unless (obj[KEY_METHOD]).is_a? String
-            invalid_request obj, CODE_INVALID_REQUEST, MSG_INVALID_REQ_METHOD
+          unless (json_obj[KEY_METHOD]).is_a? String
+            # TODO: This should just be a log message
+            # invalid_request obj, CODE_INVALID_REQUEST, MSG_INVALID_REQ_METHOD
             reply_error id, CODE_INVALID_REQUEST, MSG_INVALID_REQ_METHOD
             return false
           end
@@ -199,30 +198,34 @@ return
         # Responses must have a matching request originating from this JSON Handler
         # Otherwise ignore it
         if is_response
-          original_request = client_request!(obj[KEY_ID])
+          original_request = client_request!(json_obj[KEY_ID])
           return false if original_request.nil?
         end
 
+
         if is_request
-          route_request(obj, obj[KEY_METHOD], obj[KEY_PARAMS])
+          handler.handle(PuppetEditorServices::Protocol::JsonRPCMessages::RequestMessage.new(json_obj))
           return true
         elsif is_notification
-          route_notification(obj, obj[KEY_METHOD], obj[KEY_PARAMS])
-          return true
+          raise "!!!"
+          # handler.route_notification(obj, json_obj[KEY_METHOD], json_obj[KEY_PARAMS])
+          # return true
         elsif is_response
-          route_response(obj, original_request)
-          return true
+          # Responses are special!  they need the original request
+          raise "!!!"
+          # handler.route_response(obj, original_request)
+          # return true
         end
         false
       end
 
       def close_connection
-        client_connection.close_connection unless client_connection.nil?
+        connection.close_connection unless connection.nil?
       end
 
       def connection_error?
-        return false if client_connection.nil?
-        client_connection.error?
+        return false if connection.nil?
+        connection.error?
       end
 
       # def encode_json(data)
@@ -239,71 +242,7 @@ return
       #                             })
       # end
 
-      # Route message to the correct handler
-      def route_request(raw_object, rpc_method, params)
-        method_name = rpc_name_to_ruby_method_name('request', rpc_method)
-        if @message_handler.respond_to?(method_name.intern)
-          begin
-            encode_and_send(JSONMessage.reply_result(raw_object, @message_handler.send(method_name, handler_id, raw_object, params)))
-          rescue StandardError => e
-            @message_handler.unhandled_exception(e, :source => :request, :raw_object => raw_object)
-          end
-          return true
-        end
 
-        # Default processing
-        encode_and_send(JSONMessage.reply_method_not_found(raw_object))
-        PuppetEditorServices.log_message(:error, "Unknown RPC method #{rpc_method}")
-        false
-      end
-
-      def route_notification(raw_object, rpc_method, params)
-        method_name = rpc_name_to_ruby_method_name('notification', rpc_method)
-
-        if @message_handler.respond_to?(method_name.intern)
-          begin
-            @message_handler.send(method_name, handler_id, raw_object, params)
-          rescue StandardError => e
-            @message_handler.unhandled_exception(e, :source => :notification, :raw_object => raw_object)
-          end
-          return true
-        end
-
-        # Default processing
-        if rpc_method.start_with?('$/')
-          PuppetEditorServices.log_message(:debug, "Ignoring RPC notification #{rpc_method}")
-        else
-          PuppetEditorServices.log_message(:error, "Unknown RPC notification #{rpc_method}")
-        end
-        false
-      end
-
-      def route_response(raw_object, original_request)
-        unless ::PuppetEditorServices::JSONMessage.response_succesful?(raw_object) # rubocop:disable Style/IfUnlessModifier Line is too long otherwise
-          PuppetEditorServices.log_message(:error, "Response for method '#{original_request['method']}' with id '#{original_request['id']}' failed with #{raw_object['error']}")
-        end
-        method_name = rpc_name_to_ruby_method_name('response', original_request['method'])
-        if @message_handler.respond_to?(method_name.intern)
-          begin
-            return @message_handler.send(method_name, handler_id, raw_object, original_request)
-          rescue StandardError => e
-            @message_handler.unhandled_exception(e, :source => :response, :raw_object => raw_object)
-          end
-          return true
-        end
-
-        # Default processing
-        PuppetEditorServices.log_message(:error, "Unknown RPC response for method #{original_request['method']}")
-        false
-      end
-
-      # TODO: Add the request methods and wrap json rpc calls?
-
-      # TODO: private
-      def rpc_name_to_ruby_method_name(prefix, rpc_name)
-        name = prefix + '_' + rpc_name.tr('/', '_').tr('$', 'dollar').downcase
-        name
-      end
       #-------------
 
       # def reply_diagnostics(uri, diagnostics)
@@ -336,14 +275,14 @@ return
       end
 
       # TODO: Is this really needed?
-      def batch_not_supported_error(_obj)
-        PuppetEditorServices.log_message(:error, 'batch request received but not implemented')
-      end
+      # def batch_not_supported_error(_obj)
+      #   PuppetEditorServices.log_message(:error, 'batch request received but not implemented')
+      # end
 
       # TODO: Is this really needed?
-      def invalid_request(_obj, code, message = nil)
-        PuppetEditorServices.log_message(:error, "error #{code}: #{message}")
-      end
+      # def invalid_request(_obj, code, message = nil)
+      #   PuppetEditorServices.log_message(:error, "error #{code}: #{message}")
+      # end
 
       # region Server-to-Client request/response methods
       def send_client_request(rpc_method, params)

@@ -4,13 +4,11 @@ module PuppetEditorServices
   module Protocol
     class Base
       attr_reader :connection
+      attr_reader :handler
 
       def initialize(connection)
         @connection = connection
-      end
-
-      def protocol_options
-        connection.server.protocol_options
+        @handler = connection.server.handler_options[:class].new(self)
       end
     end
   end

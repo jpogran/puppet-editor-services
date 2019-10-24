@@ -10,7 +10,7 @@ module PuppetEditorServices
       attr_reader :server_options
       attr_reader :connection_options
       attr_reader :protocol_options
-      #attr_reader :handler_options
+      attr_reader :handler_options
 
       def initialize(server_options, connection_options, protocol_options, handler_options)
         @server_options = server_options

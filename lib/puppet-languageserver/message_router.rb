@@ -3,7 +3,7 @@
 require 'puppet_editor_services/handler/json_rpc'
 
 module PuppetLanguageServer
-  class MessageHandler < PuppetEditorServices::MessageHandler::JsonRPC
+  class MessageHandler < PuppetEditorServices::Handler::JsonRPC
     attr_reader :language_client
 
     def initialize(*_)

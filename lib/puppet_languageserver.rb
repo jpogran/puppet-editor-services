@@ -66,40 +66,41 @@ module PuppetLanguageServer
       end
     end
 
-    begin
-      require 'lsp/lsp'
-      require 'puppet'
-    rescue LoadError => e
-      log_message(:error, "Error while loading a critical gem: #{e} #{e.backtrace}")
-      return
-    end
+    # DO NOT MERGE
+    # begin
+    #   require 'lsp/lsp'
+    #   require 'puppet'
+    # rescue LoadError => e
+    #   log_message(:error, "Error while loading a critical gem: #{e} #{e.backtrace}")
+    #   return
+    # end
 
-    # These libraries require the puppet and LSP gems.
-    %w[
-      validation_queue
-      sidecar_protocol
-      sidecar_queue
-      puppet_parser_helper
-      puppet_helper
-      facter_helper
-      uri_helper
-      puppet_monkey_patches
-      providers
-    ].each do |lib|
-      begin
-        require "puppet-languageserver/#{lib}"
-      rescue LoadError
-        require File.expand_path(File.join(File.dirname(__FILE__), 'puppet-languageserver', lib))
-      end
-    end
+    # # These libraries require the puppet and LSP gems.
+    # %w[
+    #   validation_queue
+    #   sidecar_protocol
+    #   sidecar_queue
+    #   puppet_parser_helper
+    #   puppet_helper
+    #   facter_helper
+    #   uri_helper
+    #   puppet_monkey_patches
+    #   providers
+    # ].each do |lib|
+    #   begin
+    #     require "puppet-languageserver/#{lib}"
+    #   rescue LoadError
+    #     require File.expand_path(File.join(File.dirname(__FILE__), 'puppet-languageserver', lib))
+    #   end
+    # end
 
-    # Validate the feature flags
-    unless options[:flags].nil? || options[:flags].empty?
-      flags = options[:flags]
-      log_message(:debug, "Detected feature flags [#{flags.join(', ')}]")
+    # # Validate the feature flags
+    # unless options[:flags].nil? || options[:flags].empty?
+    #   flags = options[:flags]
+    #   log_message(:debug, "Detected feature flags [#{flags.join(', ')}]")
 
-      configure_featureflags(flags)
-    end
+    #   configure_featureflags(flags)
+    # end
 
     @server_is_active = true
   ensure
@@ -211,25 +212,26 @@ module PuppetLanguageServer
     log_message(:debug, 'Loading gems...')
     require_gems(options)
     return unless active?
-    log_message(:info, "Using Puppet v#{Puppet.version}")
+    # DO NOT MERGE
+    # log_message(:info, "Using Puppet v#{Puppet.version}")
 
-    log_message(:debug, "Detected additional puppet settings #{options[:puppet_settings]}")
-    options[:puppet_settings].nil? ? Puppet.initialize_settings : Puppet.initialize_settings(options[:puppet_settings])
+    # log_message(:debug, "Detected additional puppet settings #{options[:puppet_settings]}")
+    # options[:puppet_settings].nil? ? Puppet.initialize_settings : Puppet.initialize_settings(options[:puppet_settings])
 
-    log_message(:info, 'Initializing Puppet Helper...')
-    PuppetLanguageServer::PuppetHelper.initialize_helper(options)
+    # log_message(:info, 'Initializing Puppet Helper...')
+    # PuppetLanguageServer::PuppetHelper.initialize_helper(options)
 
-    log_message(:debug, 'Initializing Document Store...')
-    PuppetLanguageServer::DocumentStore.initialize_store(options)
+    # log_message(:debug, 'Initializing Document Store...')
+    # PuppetLanguageServer::DocumentStore.initialize_store(options)
 
-    log_message(:info, 'Initializing settings...')
-    if options[:fast_start_langserver]
-      Thread.new do
-        init_puppet_worker(options)
-      end
-    else
-      init_puppet_worker(options)
-    end
+    # log_message(:info, 'Initializing settings...')
+    # if options[:fast_start_langserver]
+    #   Thread.new do
+    #     init_puppet_worker(options)
+    #   end
+    # else
+    #   init_puppet_worker(options)
+    # end
 
     true
   end
@@ -277,28 +279,36 @@ module PuppetLanguageServer
     log_message(:info, 'Starting RPC Server...')
     options[:servicename] = 'LANGUAGE SERVER'
 
-    unless active?
-      options[:message_router] = @message_router = PuppetLanguageServer::DisabledMessageRouter.new(options)
-      log_message(:info, 'Configured the Language Server to use the Disabled Message Router')
-    end
+    # BROKEN!!!
+    # unless active?
+    #   options[:message_router] = @message_router = PuppetLanguageServer::DisabledMessageRouter.new(options)
+    #   log_message(:info, 'Configured the Language Server to use the Disabled Message Router')
+    # end
 
-    rpc_handler_options = options.dup
-    rpc_handler_options[:message_handler_class] = PuppetLanguageServer::MessageHandler
+    #protocol_options = options.dup
+    #protocol_options[:message_handler_class] = PuppetLanguageServer::MessageHandler
 
+    require 'puppet_editor_services/protocol/json_rpc'
     if options[:stdio]
-      log_message(:debug, 'Using STDIO')
-      server = PuppetEditorServices::SimpleSTDIOServer.new
+      # log_message(:debug, 'Using STDIO')
+      # require 'puppet_editor_services/server/stdio'
+      # server = PuppetEditorServices::Server::Stdio.new
 
-      trap('INT') { server.stop }
-      server.start(PuppetEditorServices::JSONRPCHandler, rpc_handler_options)
+      # trap('INT') { server.stop }
+      # server.start(PuppetEditorServices::Protocol::JsonRPC, protocol_options)
     else
       log_message(:debug, 'Using Simple TCP')
-      server = PuppetEditorServices::SimpleTCPServer.new
-
-      server.add_service(options[:ipaddress], options[:port])
-      trap('INT') { server.stop_services(true) }
+      require 'puppet_editor_services/server/tcp'
       # TODO: Add max threads?
-      server.start(PuppetEditorServices::JSONRPCHandler, rpc_handler_options, options)
+      server = PuppetEditorServices::Server::Tcp.new(
+        options,
+        { :class => PuppetEditorServices::Protocol::JsonRPC }.merge(options),
+        { :class => PuppetLanguageServer::MessageHandler} .merge(options)
+      )
+
+      #server.add_service(options[:ipaddress], options[:port])
+      trap('INT') { server.stop_services(true) }
+      server.start
     end
 
     log_message(:info, 'Language Server exited.')

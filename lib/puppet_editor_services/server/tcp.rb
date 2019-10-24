@@ -336,7 +336,7 @@ module PuppetEditorServices
         end
 
         return unless connection_count.zero? && !@server_options[:stop_on_client_exit].nil? && @server_options[:stop_on_client_exit]
-        callback(self, :log, 'Client has disconnected.  Shutting down server.')
+        callback(self, :log, 'All clients have disconnected.  Shutting down server.')
         callback(self, :stop_services)
       end
 

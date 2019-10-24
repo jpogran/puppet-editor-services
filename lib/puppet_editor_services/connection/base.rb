@@ -28,7 +28,8 @@ module PuppetEditorServices
       def receive_data(data)
         @protocol.receive_data(data)
       rescue StandardError => e
-        server.log(:error, "TCPSRV: Protocol #{@protocol.class} raised error #{e}: #{e.backtrace}")
+        # TODO:  Surface  Server.name instead of this janky crap
+        server.log("SRV: Protocol #{@protocol.class} raised error #{e}: #{e.backtrace}")
       end
 
       # Override this method
