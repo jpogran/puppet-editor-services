@@ -1,5 +1,71 @@
 require 'spec_helper'
 
+
+# DELETE ME
+# JSONRPCParser
+#   # RequestParser, RequestHandler
+#   def initialization(request_parser, request_handler)
+#   end
+
+#   def parse(data)
+#     request = request_parser.parse(data)
+#   end
+# end
+
+# RequestParser
+#   def parse(raw)
+#     # processes Content-Length, builds request obj
+#   end
+# end
+
+# RequestHandler
+#   def handle(request)
+#     # method_respond? to request instead of case
+#     case request.type
+#     InitializationRequest
+#       foo
+#     CompletionItemRequest
+#     end
+#   end
+# end
+
+
+
+# ^^^^^
+#    \|/
+# Handler (does something with the message)
+#     |
+#   (read and write messages)
+#     |
+# Protocol  (converts messages to bytes and vice-versa)
+#     |
+#   (read and write arrays of bytes)
+#     |
+# Connection
+#   (connection per client i.e. manages the server/client connection e.g. close/error)
+# Server
+
+# &&&
+# - LanguageServer::MessageHandler < PuppetEditorServices::JSONMessageHandlerBase
+
+# - JSONRPCHandler < SimpleServerConnectionHandler
+
+# #---
+# - SimpleServerConnectionHandler  (receive-data)
+# - SimpleServerConnectionBase
+# - SimpleServer
+
+# TCPServer -> TCP Connection
+# STDIO -> STDIO Connection
+
+# ConnectionHandlerBase (connection parser / Protocol ? / TransportProtocol ?)
+# ConnectionBase
+# ServerBase
+
+# Takes an envelope and constructs a message --->
+# Takes a message and wraps it into an envelope for transport  <---
+
+
 describe 'PuppetLanguageServer::MessageHandler' do
   MANIFEST_FILENAME = 'file:///something.pp'
   PUPPETFILE_FILENAME = 'file:///Puppetfile'
