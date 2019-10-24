@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
+require 'puppet_editor_services/handler/json_rpc'
+
 module PuppetLanguageServer
-  class MessageHandler < PuppetEditorServices::BaseMessageHandler
+  class MessageHandler < PuppetEditorServices::MessageHandler::JsonRPC
     attr_reader :language_client
 
     def initialize(*_)
