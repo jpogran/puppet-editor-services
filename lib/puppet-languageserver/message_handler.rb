@@ -78,6 +78,26 @@ module PuppetLanguageServer
       end
     end
 
+    def request_puppet_puppetfiledependency(_, json_rpc_message)
+      content = json_rpc_message.params['content']
+      require 'puppetfile-resolver/puppetfile/parser/r10k_eval'
+      puppetfile = ::PuppetfileResolver::Puppetfile::Parser::R10KEval.parse(content)
+      result = []
+      puppetfile.modules.each do |dep|
+        if dep.name == 'Puppet'
+        else
+          result << {
+            name: dep.title,
+            owner: dep.owner,
+            version: dep.version.to_s,
+            start_line: dep.location.start_line,
+            end_line: dep.location.end_line,
+          }
+        end
+      end
+      LSP::PuppetPuppetFileDependencyResponse.new('dependencies' => result)
+    end
+
     def request_puppet_fixdiagnosticerrors(_, json_rpc_message)
       formatted_request = LSP::PuppetFixDiagnosticErrorsRequest.new(json_rpc_message.params)
       file_uri = formatted_request.documentUri

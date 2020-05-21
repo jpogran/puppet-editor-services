@@ -100,6 +100,27 @@ module LSP
     end
   end
 
+  # export interface PuppetPuppetFileDependencyResponse {
+  #   dotContent: string;
+  #   data: string;
+  # }
+  class PuppetPuppetFileDependencyResponse < LSPBase
+    attr_accessor :dependencies # type: string
+    attr_accessor :error # type: string
+
+    def initialize(initial_hash = nil)
+      super
+      @optional_method_names = %i[error]
+    end
+
+    def from_h!(value)
+      value = {} if value.nil?
+      self.dependencies = value['dependencies']
+      self.error = value['error']
+      self
+    end
+  end
+
   # export interface CompileNodeGraphResponse {
   #   dotContent: string;
   #   data: string;

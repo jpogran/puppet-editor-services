@@ -9,6 +9,7 @@ source ENV['GEM_SOURCE'] || "https://rubygems.org"
 # -=-=-=-=-=- WARNING -=-=-=-=-=-
 
 group :development do
+  gem 'pry'
   gem 'rake', '>= 10.4',            :require => false
   gem 'rspec', '>= 3.2',            :require => false
 
