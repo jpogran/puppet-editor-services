@@ -87,7 +87,8 @@ module PuppetLanguageServer
         if dep.name == 'Puppet'
         else
           result << {
-            name: dep.title,
+            name: dep.name,
+            title: dep.title,
             owner: dep.owner,
             version: dep.version.to_s,
             start_line: dep.location.start_line,
@@ -95,6 +96,7 @@ module PuppetLanguageServer
           }
         end
       end
+      require 'pry';binding.pry
       LSP::PuppetPuppetFileDependencyResponse.new('dependencies' => result)
     end
 
